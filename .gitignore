@@ -8,6 +8,7 @@ __pycache__/
 
 # RevitModels
 *.rvt
+Models_Revit/
 
 # Distribution / packaging
 .Python

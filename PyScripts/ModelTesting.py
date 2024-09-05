@@ -97,9 +97,9 @@ session_model = rt.InferenceSession(filePath+fileName)
 # ['Толщина','ПаркингBool', 'ШтукатурныйBool',
 # 'НавеснойBool', 'ВнутрBool', 'ПодвалBool', 'УтеплениеBool',
 # 'ПарапетBool', 'БетонBool', 'ЛЛУBool', 'ПомещенияBool']
-elem  = getInputData(typeName='СтеныПодвала_Утеплитель_100мм',
-                   thickness=100,sectionName='Секция 1',
-                   elev=-3000)
+elem  = getInputData(typeName='BRU_ФасадНавесной_ПанельФиброцементная_140мм',
+                   thickness=140,sectionName='Секция 1',
+                   elev= 3000)
 
 #Тестирование joblib
 transformed_data = loaded_scaler.transform(elem)

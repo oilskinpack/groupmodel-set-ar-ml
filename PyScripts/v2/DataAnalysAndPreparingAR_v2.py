@@ -215,7 +215,7 @@ res = DfHelper.percent_missing(fullDf)
 # res = fullDf.convert_dtypes().info()
 fullDf = fullDf.apply(DfHelper.convertToDouble)
 fullDf = fullDf.convert_dtypes()
-res = fullDf.info()
+# res = fullDf.info()
 
 #endregion
 #region Конструирование признаков
@@ -238,6 +238,24 @@ fullDf[groupModelPN] = DfHelper.replace_value(fullDf,typePN,'BRU_ФасадШт�
 res = fullDf[fullDf[plasteringPN] == 1][[groupModelPN]].value_counts()
 #endregion
 #region Добавляем условие Навесной
+fullDf[mountedPN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'навесн')
+res = fullDf[fullDf[mountedPN] == 1][[groupModelPN]].value_counts()
+
+#Заменяем неправильные значения Группы модели
+res = DfHelper.show_unique_by_two_conditions(fullDf,mountedPN,1
+                                             ,groupModelPN,'Утепление штукатурного фасада'
+                                             ,[typePN,groupModelPN])
+fullDf[groupModelPN] = DfHelper.replace_value(fullDf,typePN,'BRU_ФасадНавесной_ШтукатуркаБелая_10мм'
+                                              ,'Штукатурка фасадная'
+                                              ,fullDf[groupModelPN])
+fullDf[typePN] = DfHelper.replace_value(fullDf,typePN,'BRU_ФасадНавесной_Утеплитель_100мм'
+                                              ,'BRU_ФасадШтукатурный_Утеплитель_100мм'
+                                              ,fullDf[typePN])
+
+fullDf[mountedPN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'навесн')
+fullDf[plasteringPN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'штук')
+res = fullDf[fullDf[mountedPN] == 1][[groupModelPN]].value_counts()
+
 
 
 

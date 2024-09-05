@@ -222,6 +222,7 @@ fullDf[innerWall] = np.where((fullDf['Тип'].str.contains('перегор',cas
                              | (fullDf['Тип'].str.contains('внутр',case=False) == True)
                              ,True,False)
 
+
 #endregion
 #region Проверка достаточности признаков
 

@@ -46,3 +46,8 @@ class DfHelper():
                          , new_value
                          , changing_col)
         return npArr
+
+    def show_unique_by_two_conditions(fullDf,col_one,val_one,col_two,val_two,showed_cols):
+        res = fullDf[(fullDf[col_one] == val_one) & (fullDf[col_two] == val_two)][
+            showed_cols].value_counts()
+        return res

@@ -11,9 +11,12 @@ from win32con import DFCS_HOT
 from PyScripts.Helpers.DfHelper import DfHelper
 
 res = ''
-needSaveFinalDf = False
+needSaveFinalDf = True
+needSaveUniqueValues = False
 version = '2'
 dirPath = r'D:\Khabarov\Скрипты\6.Валидация АР\DataSets\DatasetsOfRevitModels'
+uniqTypesPath = fr'D:\Khabarov\Скрипты\6.Валидация АР\DataSets\UniqueTypes\uniqueTypes_v{version}.xlsx'
+cleared_Path = fr'D:\Khabarov\Скрипты\6.Валидация АР\DataSets\ClearedDatasets\dataset_ar_cleared_v{version}.txt'
 
 
 #region Настройки отображения
@@ -38,12 +41,19 @@ plasteringPN = 'ШтукатурныйBool'
 mountedPN = 'НавеснойBool'
 gmCorrect = 'ПравГМBool'
 innerWall = 'ВнутрBool'
+partitionPN = 'ПерегородкаBool'
 basementPN = 'ПодвалBool'
 insulationPN = 'УтеплениеBool'
 parapetPN = 'ПарапетBool'
 concretePN = 'БетонBool'
 lluPN = 'ЛЛУBool'
 premisePN = 'ПомещенияBool'
+plinthPN = 'ЦокольBool'
+sewingPN = 'ЗашивкаBool'
+platingPN = 'ОбшивкаBool'
+externalPN = 'ВнешняяBool'
+freePN = 'СПBool'
+ceramicPN = 'КерамичBool'
 
 groupModelNames = ['Монолитный пилон','Монолитная стена','Монолитная фундаментная плита',
                    'Деформационный шов. Каркас монолитный',
@@ -71,12 +81,19 @@ x_colums_withGM = [thicknessPN,
                    plasteringPN,
                    mountedPN,
                    innerWall,
+                    partitionPN,
                    basementPN,
                    insulationPN,
                    parapetPN,
                    concretePN,
                    lluPN,
                    premisePN,
+                    plinthPN,
+                    sewingPN,
+                    platingPN,
+                   externalPN,
+                   freePN,
+                   ceramicPN,
                    groupModelPN]
                      # ]
 x_colums = [thicknessPN,
@@ -84,12 +101,19 @@ x_colums = [thicknessPN,
                    plasteringPN,
                    mountedPN,
                    innerWall,
+                    partitionPN,
                    basementPN,
                    insulationPN,
                    parapetPN,
                    concretePN,
                    lluPN,
                     premisePN,
+                    plinthPN,
+                    sewingPN,
+                    platingPN,
+                    externalPN,
+                    freePN,
+                    ceramicPN,
                    # groupModelPN]
                      ]
 
@@ -109,7 +133,15 @@ def map_gm_values(fullDf):
                                     df[groupModelPN].map(gmErrorMap))
     return df
 
-#
+def getElev(value):
+    res = 0
+    value = str(value)
+    match = re.search(r'([-+]?\d+,\d+)', value)
+    if match:
+        res = match.group(1).replace('+','').replace(',','.')
+        res = float(res)
+    return res
+#endregion
 #region Анализ данных
 
 #region Анализ и актуализация ГруппыМодели (классы)
@@ -252,18 +284,202 @@ fullDf[typePN] = DfHelper.replace_value(fullDf,typePN,'BRU_ФасадНавес�
                                               ,'BRU_ФасадШтукатурный_Утеплитель_100мм'
                                               ,fullDf[typePN])
 
-fullDf[mountedPN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'навесн')
-fullDf[plasteringPN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'штук')
+# fullDf[mountedPN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'навесн')
+# fullDf[plasteringPN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'штук')
 res = fullDf[fullDf[mountedPN] == 1][[groupModelPN]].value_counts()
 
 
 
 
 #endregion
+#region Добавляем условие Внутренняя
+fullDf[innerWall] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'внутр')
+
+#Заменяем неправильные значения Группы модели
+fullDf[groupModelPN] = DfHelper.replace_value(fullDf,typePN,'BRU_ВнутреняяСтена_Тех.Этаж_Утеплитель_100мм'
+                                              ,'Утепление стен подвала'
+                                              ,fullDf[groupModelPN])
+fullDf[groupModelPN] = DfHelper.replace_value(fullDf,typePN,'BRU_ВнутренняяСтена_Тамбур_Утеплитель_150мм'
+                                              ,'Утепление штукатурного фасада'
+                                              ,fullDf[groupModelPN])
+res = fullDf[fullDf[innerWall] == 1][[typePN,groupModelPN]].value_counts()
+
+#endregion
+#region Добавляем условие Перегородка
+fullDf[partitionPN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'перегор')
+res = fullDf[fullDf[partitionPN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+#Заменяем неправильные значения Группы модели
+fullDf[groupModelPN] = DfHelper.replace_value(fullDf,typePN,'BRU_Перегородка_БлокКерамический_250мм'
+                                              ,'Внутренняя стена. Кладка'
+                                              ,fullDf[groupModelPN])
+fullDf[groupModelPN] = DfHelper.replace_value(fullDf,typePN,'BRU_Перегородка_ГКЛ_Gyproc_С-2М-2ОПТИМА_280/2х75_ГСП-А_12,5'
+                                              ,'Перегородка ГКЛ'
+                                              ,fullDf[groupModelPN])
+fullDf[groupModelPN] = DfHelper.replace_value(fullDf,typePN,'BRU_Перегородка_ЦПВ_КНАУФ_С381_100/75_Аквапанель_12,5'
+                                              ,'Перегородка ГКЛ'
+                                              ,fullDf[groupModelPN])
+fullDf[groupModelPN] = np.where(fullDf[typePN].str.contains('Перегородка_ГКЛ',False) == True,'Перегородка ГКЛ',fullDf[groupModelPN])
+res = fullDf[fullDf[partitionPN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+#endregion
+#region Добавляем условие Отметка
+
+#Чистим значения - Утепление помещений только выше 0
+fullDf['Отметка'] = fullDf[floorPN].apply(getElev)
+fullDf[floorPN] = np.where( (fullDf[groupModelPN] == 'Утепление помещений') & (fullDf['Отметка'] < 0),
+                            'Этаж 01 (отм. +0,000)',
+                            fullDf[floorPN])
+fullDf['Отметка'] = fullDf[floorPN].apply(getElev)
+
+#endregion
+#region Добавляем условие подвал
+fullDf[basementPN] = np.where(fullDf['Отметка'] >= 0,False,True)
+
+res = fullDf[fullDf[basementPN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+#endregion
+#region Добавляем условие Утеплитель
+fullDf[insulationPN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'утепл')
+res = fullDf[fullDf[insulationPN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+#endregion
+#region Добавляем условие Бетон
+fullDf[concretePN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'бетон')
+res = fullDf[fullDf[concretePN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+fullDf[groupModelPN] = DfHelper.replace_value(fullDf,typePN,'BRU_ОтделкаПомещений_ПоБетону_20мм_СухаяЗона'
+                                              ,'Штукатурка черновая'
+                                              ,fullDf[groupModelPN])
+res = fullDf[fullDf[concretePN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+#endregion
+#region Добавляем условие ЛЛУ
+fullDf[lluPN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'ллу')
+res = fullDf[fullDf[lluPN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+#endregion
+#region Добавляем условие Помещение
+fullDf[premisePN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'помещ')
+res = fullDf[fullDf[premisePN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+fullDf[groupModelPN] = DfHelper.replace_value(fullDf,typePN,'BRU_ОтделкаПомещений_ПоУтеплителю_15мм_СухаяЗона'
+                                              ,'Штукатурка черновая'
+                                              ,fullDf[groupModelPN])
+fullDf[groupModelPN] = DfHelper.replace_value(fullDf,typePN,'BRU_ОтделкаПомещений_ПоБетону_20мм_МокраяЗона'
+                                              ,'Штукатурка черновая'
+                                              ,fullDf[groupModelPN])
+fullDf[groupModelPN] = DfHelper.replace_value(fullDf,typePN,'BRU_ОтделкаПомещений_Утеплитель_150мм'
+                                              ,'Утепление цоколя навесного'
+                                              ,fullDf[groupModelPN])
+fullDf[groupModelPN] = DfHelper.replace_value(fullDf,typePN,'BRU_ОтделкаПомещений_Утеплитель_100мм'
+                                              ,'Утепление цоколя навесного'
+                                              ,fullDf[groupModelPN])
+fullDf[groupModelPN] = DfHelper.replace_value(fullDf,typePN,'BRU_ОтделкаПомещений_Утеплитель_50мм'
+                                              ,'Утепление помещений'
+                                              ,fullDf[groupModelPN])
+res = fullDf[fullDf[premisePN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+#endregion
+#region Добавляем условие Цоколь
+fullDf[plinthPN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'цокол')
+res = fullDf[fullDf[plinthPN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+fullDf[groupModelPN] = DfHelper.replace_value(fullDf,typePN,'BRU_ФасадЦоколь_Утеплитель_150мм'
+                                              ,'Утепление цоколя навесного'
+                                              ,fullDf[groupModelPN])
+fullDf[groupModelPN] = DfHelper.replace_value(fullDf,typePN,'BRU_ФасадЦоколь_Утеплитель_50мм'
+                                              ,'Утепление цоколя навесного'
+                                              ,fullDf[groupModelPN])
+fullDf[groupModelPN] = DfHelper.replace_value(fullDf,typePN,'BRU_ФасадЦоколь_Утеплитель_100мм'
+                                              ,'Утепление цоколя штукатурного'
+                                              ,fullDf[groupModelPN])
+res = fullDf[fullDf[plinthPN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+#endregion
+#region Добавляем условие Зашивка
+fullDf[sewingPN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'зашивк')
+res = fullDf[fullDf[sewingPN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+fullDf[groupModelPN] = np.where(fullDf[typePN].str.contains('Зашивка_ГКЛ') == True,'Зашивка ГКЛ',fullDf[groupModelPN])
+res = fullDf[fullDf[sewingPN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+fullDf[groupModelPN] = np.where(fullDf[typePN].str.contains('BRU_Зашивка_ЦПВ_КНАУФ_С685_50_Аквапанель_12,5') == True
+                                ,'Зашивка ГКЛ',fullDf[groupModelPN])
+
+#endregion
+#region Добавляем условие Обшивка
+fullDf[platingPN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'обшивк')
+res = fullDf[fullDf[platingPN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+fullDf[groupModelPN] = np.where(fullDf[typePN].str.contains('Обшивка_ГКЛ') == True,'Обшивка ГКЛ',fullDf[groupModelPN])
+res = fullDf[fullDf[platingPN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+#endregion
+#region Добавляем условие Внешняя
+fullDf[externalPN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'внешн')
+res = fullDf[fullDf[externalPN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+fullDf[groupModelPN] = np.where(fullDf[typePN].str.contains('BRU_ВнешняяСтена_КирпичКерамическийРядовойПолнотелый1,4НФ_120мм') == True
+                                ,'Навесной фасад. Кладка',fullDf[groupModelPN])
+res = fullDf[fullDf[externalPN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+#endregion
+#region Добавляем условие СП
+fullDf[freePN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'свободн')
+res = fullDf[fullDf[freePN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+fullDf[groupModelPN] = np.where(fullDf[typePN].str.contains('Зашивка в свободной планировке_75мм') == True
+                                ,'Невалидируемое семейство АР',fullDf[groupModelPN])
+fullDf[groupModelPN] = np.where(fullDf[typePN].str.contains('Перегородка в свободной планировке_125мм') == True
+                                ,'Невалидируемое семейство АР',fullDf[groupModelPN])
+res = fullDf[fullDf[freePN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+#endregion
+#region Добавляем условие Керамический
+fullDf[ceramicPN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'керамич')
+res = fullDf[fullDf[ceramicPN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+fullDf[groupModelPN] = np.where(fullDf[typePN].str.contains('BRU_Вентканал_КирпичКерамическийРядовойПолнотелый1,4НФ_120мм') == True
+                                ,'Перегородка. Кладка',fullDf[groupModelPN])
+fullDf[groupModelPN] = np.where(fullDf[typePN].str.contains('BRU_Парапет_КирпичКерамическийРядовойПолнотелый1,4НФ_120мм') == True
+                                ,'Перегородка. Кладка',fullDf[groupModelPN])
+fullDf[groupModelPN] = np.where(fullDf[typePN].str.contains('BRU_ВнешняяСтена_КирпичКерамическийРядовойПолнотелый1,4НФ_120мм') == True
+                                ,'Перегородка. Кладка',fullDf[groupModelPN])
+fullDf[groupModelPN] = np.where(fullDf[typePN].str.contains('BRU_Парапет_БлокКерамический6,74НФ_120мм') == True
+                                ,'Перегородка. Кладка',fullDf[groupModelPN])
+
+res = fullDf[fullDf[ceramicPN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+
+#endregion
+#region Обработка деформационного шва
+fullDf[groupModelPN] = np.where(fullDf[typePN].str.contains('дефор',False) == True
+                                ,'Деформационный шов. Каркас монолитный',fullDf[groupModelPN])
+
+#endregion
+
+
+#endregion
+#region Экспортирование уникальных типов
+uniqueTypes = fullDf[[groupModelPN,typePN,thicknessPN]].value_counts().reset_index()
+if(needSaveUniqueValues):
+    uniqueTypes.to_excel(uniqTypesPath,sheet_name='Sheet1')
+    print('Уникальные типы сохранены')
+
+
 
 #endregion
 
 #endregion
+
+#endregion
+#region Сохранение очищенного датасета
+
+if needSaveFinalDf:
+    fullDf.to_csv(cleared_Path,
+                  index=False,
+                  sep=';')
+    print('Очищенный датасет сохранен')
 
 #endregion
 

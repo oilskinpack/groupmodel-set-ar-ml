@@ -11,7 +11,7 @@ from win32con import DFCS_HOT
 from PyScripts.Helpers.DfHelper import DfHelper
 
 res = ''
-needSaveFinalDf = True
+needSaveFinalDf = False
 needSaveUniqueValues = False
 version = '2'
 dirPath = r'D:\Khabarov\Скрипты\6.Валидация АР\DataSets\DatasetsOfRevitModels'
@@ -288,8 +288,10 @@ fullDf[typePN] = DfHelper.replace_value(fullDf,typePN,'BRU_ФасадНавес�
 # fullDf[plasteringPN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'штук')
 res = fullDf[fullDf[mountedPN] == 1][[groupModelPN]].value_counts()
 
+fullDf[groupModelPN] = np.where(fullDf[typePN].str.contains('BRU_Фасад_Утеплитель_300мм') == True
+                                ,'Утепление навесного фасада',fullDf[groupModelPN])
 
-
+fullDf[mountedPN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'навесн')
 
 #endregion
 #region Добавляем условие Внутренняя
@@ -330,6 +332,9 @@ fullDf['Отметка'] = fullDf[floorPN].apply(getElev)
 fullDf[floorPN] = np.where( (fullDf[groupModelPN] == 'Утепление помещений') & (fullDf['Отметка'] < 0),
                             'Этаж 01 (отм. +0,000)',
                             fullDf[floorPN])
+fullDf[floorPN] = np.where( (fullDf[groupModelPN] == 'Утепление стен подвала') & (fullDf['Отметка'] > 0),
+                            'Этаж -01 (отм. -3,000)',
+                            fullDf[floorPN])
 fullDf['Отметка'] = fullDf[floorPN].apply(getElev)
 
 #endregion
@@ -344,14 +349,26 @@ fullDf[insulationPN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'�
 res = fullDf[fullDf[insulationPN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
 
 #endregion
+#region Добавляем параметр Парапет
+fullDf[parapetPN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'парапет')
+res = fullDf[fullDf[parapetPN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+#endregion
 #region Добавляем условие Бетон
-fullDf[concretePN] = DfHelper.create_bool_feature_by_contains(fullDf,typePN,'бетон')
+fullDf[concretePN] = np.where((fullDf[typePN].str.contains('бетон', case=False) == True)
+                              | (fullDf[typePN].str.contains('жб', case=False) == True)
+                              , 1, 0)
 res = fullDf[fullDf[concretePN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
 
 fullDf[groupModelPN] = DfHelper.replace_value(fullDf,typePN,'BRU_ОтделкаПомещений_ПоБетону_20мм_СухаяЗона'
                                               ,'Штукатурка черновая'
                                               ,fullDf[groupModelPN])
-res = fullDf[fullDf[concretePN] == 1][[typePN,thicknessPN,groupModelPN]].value_counts()
+fullDf[groupModelPN] = np.where(fullDf[typePN].str.contains('BRU_ЖБ стена_200') == True
+                                ,'Монолитная стена',fullDf[groupModelPN])
+fullDf[groupModelPN] = np.where(fullDf[typePN].str.contains('BRU_ЖБ стена_250') == True
+                                ,'Монолитная стена',fullDf[groupModelPN])
+
+
+res = fullDf[fullDf[concretePN] == 1][[typePN,thicknessPN,concretePN,groupModelPN]].value_counts()
 
 #endregion
 #region Добавляем условие ЛЛУ
@@ -456,6 +473,46 @@ res = fullDf[fullDf[ceramicPN] == 1][[typePN,thicknessPN,groupModelPN]].value_co
 fullDf[groupModelPN] = np.where(fullDf[typePN].str.contains('дефор',False) == True
                                 ,'Деформационный шов. Каркас монолитный',fullDf[groupModelPN])
 
+fullDf = fullDf[fullDf[groupModelPN] != 'Деформационный шов. Каркас монолитный']
+
+#endregion
+#region Обработка утепления для цоколя, помещений и подвала
+badIsulationTypes = fullDf[fullDf[groupModelPN].isin(['Утепление цоколя штукатурного',
+                   'Утепление цоколя навесного','Утепление помещений',
+                   'Утепление стен подвала'])]
+res = badIsulationTypes[[typePN,thicknessPN,groupModelPN]].value_counts()
+
+#Цоколь штукатурный
+fullDf[groupModelPN] = np.where((fullDf[plinthPN] == 1) & (fullDf[plasteringPN] == 1)
+                                ,'Утепление цоколя штукатурного',fullDf[groupModelPN])
+fullDf[groupModelPN] = np.where((fullDf[plinthPN] == 1) & (fullDf[plasteringPN] == 0)
+                                ,'Утепление цоколя навесного',fullDf[groupModelPN])
+fullDf[groupModelPN] = np.where((fullDf[premisePN] == 1)
+                                & (fullDf[insulationPN] == 1)
+                                & (fullDf[thicknessPN] == 50)
+                                & (fullDf[basementPN] == 0)
+                                ,'Утепление помещений',fullDf[groupModelPN])
+fullDf[groupModelPN] = np.where((fullDf[premisePN] == 1)
+                                & (fullDf[insulationPN] == 1)
+                                & (fullDf[thicknessPN] >= 50)
+                                & (fullDf[basementPN] == 1)
+                                ,'Утепление стен подвала',fullDf[groupModelPN])
+
+fullDf[groupModelPN] = np.where(fullDf[typePN] == 'BRU_ОтделкаПомещений_Утеплитель_150мм'
+                                ,'Утепление стен подвала',fullDf[groupModelPN])
+fullDf[groupModelPN] = np.where(fullDf[typePN] == 'BRU_ОтделкаПомещений_Утеплитель_100мм'
+                                ,'Утепление стен подвала',fullDf[groupModelPN])
+
+badIsulationTypes = fullDf[fullDf[groupModelPN].isin(['Утепление цоколя штукатурного',
+                   'Утепление цоколя навесного','Утепление помещений',
+                   'Утепление стен подвала'])]
+res = badIsulationTypes[[groupModelPN,typePN,thicknessPN]].value_counts()
+
+
+#endregion
+#region Обработка Монолитных фундаментных плит
+fullDf = fullDf[fullDf[groupModelPN] != 'Монолитная фундаментная плита']
+
 #endregion
 
 
@@ -482,6 +539,9 @@ if needSaveFinalDf:
     print('Очищенный датасет сохранен')
 
 #endregion
+
+#170489 rows
+# res = fullDf
 
 
 

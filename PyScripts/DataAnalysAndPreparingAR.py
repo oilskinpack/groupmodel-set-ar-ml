@@ -1,5 +1,4 @@
 import re
-
 import numpy as np
 import pandas as pd
 import os
@@ -222,6 +221,7 @@ fullDf[mountedPN] = np.where(fullDf['Тип'].str.contains('навесн',case=F
 fullDf[innerWall] = np.where((fullDf['Тип'].str.contains('перегор',case=False) == True)
                              | (fullDf['Тип'].str.contains('внутр',case=False) == True)
                              ,True,False)
+
 
 #endregion
 #region Проверка достаточности признаков

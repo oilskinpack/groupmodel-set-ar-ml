@@ -5,7 +5,15 @@ from skl2onnx.common.data_types import FloatTensorType
 import onnxruntime as rt
 import numpy as np
 
-version = 1
+version = 2
+scaler_path = r'D:\Khabarov\Скрипты\6.Валидация АР\PyScalers'
+scaler_save_Name = fr'\normalizerAR_v{version}.save'
+
+model_path = r'D:\Khabarov\Скрипты\6.Валидация АР\PyModels'
+model_joblib_name = fr'\modelAR_v{version}.joblib'
+
+scaler_onnx_name = fr'\normalizerAR_v{version}.onnx'
+model_onnx_name = fr'\modelAR_v{version}.onnx'
 
 
 #region Методы
@@ -28,8 +36,12 @@ def getInputData(typeName,thickness,sectionName,elev):
     arr.append(mountedPN)
 
     #ВнутрBool
-    innerWall = 'внутр' in typeName or 'перегор' in typeName
+    innerWall = 'внутр' in typeName
     arr.append(innerWall)
+
+    #Перегородка
+    partition = 'перегор' in typeName
+    arr.append(partition)
 
     #ПодвалBool - по отметке в названии этажа
     basementPN = elev < 0
@@ -44,7 +56,7 @@ def getInputData(typeName,thickness,sectionName,elev):
     arr.append(parapetPN)
 
     #БетонBool
-    concretePN = 'бетон' in typeName
+    concretePN = ('бетон' in typeName) or ('жб' in typeName)
     arr.append(concretePN)
 
     #ЛлуBool
@@ -55,6 +67,30 @@ def getInputData(typeName,thickness,sectionName,elev):
     premisePN = 'помещ' in typeName
     arr.append(premisePN)
 
+    #Цоколь
+    plinthPN = 'цокол' in typeName
+    arr.append(plinthPN)
+
+    #Зашивка
+    sewingPN = 'зашивк' in typeName
+    arr.append(sewingPN)
+
+    #Обшивка
+    platingPN = 'обшивка' in typeName
+    arr.append(platingPN)
+
+    #Внешняя
+    externalPN = 'внешн' in typeName
+    arr.append(externalPN)
+
+    #СП
+    freePN = 'свободн' in typeName
+    arr.append(freePN)
+
+    #Керамический
+    ceramicPN = 'керамич' in typeName
+    arr.append(ceramicPN)
+
     resArr = np.array([arr])
     return resArr
 
@@ -64,15 +100,11 @@ def getInputData(typeName,thickness,sectionName,elev):
 #region Загрузка файлов joblib
 
 #Загрузка нормализатора
-filePath = r'D:\Khabarov\Скрипты\6.Валидация АР\PyScalers'
-fileName = fr'\normalizerAR_v{version}.save'
-loaded_scaler = load(filePath+fileName)
+loaded_scaler = load(scaler_path+scaler_save_Name)
 
 #Загрузка модели
-scalerPath = r'D:\Khabarov\Скрипты\6.Валидация АР\PyScalers'
-filePath = r'D:\Khabarov\Скрипты\6.Валидация АР\PyModels'
 fileName = fr'\modelAR_v{version}.joblib'
-loaded_model = load(filePath+fileName)
+loaded_model = load(model_path+model_joblib_name)
 
 #endregion
 #region Загрузка файлов onnx
@@ -81,13 +113,11 @@ loaded_model = load(filePath+fileName)
 # supp_Converters = skl2onnx.supported_converters(from_sklearn = False)
 
 #Нормализатор
-fileName = fr'\normalizerAR_v{version}.onnx'
-session_normalizer = rt.InferenceSession(scalerPath+fileName)
+session_normalizer = rt.InferenceSession(scaler_path + scaler_onnx_name)
 input_name = session_normalizer.get_inputs()[0].name
 
 #Модель
-fileName = fr'\modelAR_v{version}.onnx'
-session_model = rt.InferenceSession(filePath+fileName)
+session_model = rt.InferenceSession(model_path+model_onnx_name)
 
 
 #endregion
@@ -97,12 +127,13 @@ session_model = rt.InferenceSession(filePath+fileName)
 # ['Толщина','ПаркингBool', 'ШтукатурныйBool',
 # 'НавеснойBool', 'ВнутрBool', 'ПодвалBool', 'УтеплениеBool',
 # 'ПарапетBool', 'БетонBool', 'ЛЛУBool', 'ПомещенияBool']
-elem  = getInputData(typeName='BRU_ФасадНавесной_ПанельФиброцементная_140мм',
-                   thickness=140,sectionName='Секция 1',
+elem  = getInputData(typeName='Перегородка_ГКЛ_125_ГСП-A(12,5)_x4',
+                   thickness=125,sectionName='Секция 1',
                    elev= 3000)
 
 #Тестирование joblib
 transformed_data = loaded_scaler.transform(elem)
+print(transformed_data)
 prediction = loaded_model.predict(transformed_data)
 prediction_proba = loaded_model.predict_proba(transformed_data).max()
 print(f'Группа модели:{prediction}, вероятность {prediction_proba}  - joblib')
@@ -113,7 +144,3 @@ prediction_onnx = session_model.run(None,{input_name:transformed_data_onnx.astyp
 print(f'Группа модели:{prediction_onnx}  - onnx')
 
 #endregion
-
-
-
-# print(res)

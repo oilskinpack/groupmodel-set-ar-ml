@@ -68,7 +68,7 @@ x_colums = [thicknessPN,
 
 
 
-filePath = r'D:\Khabarov\Скрипты\6.Валидация АР\DataSets\ClearedDatasets'
+filePath = r'/DataSets/ClearedDatasets'
 fileName = fr'\dataset_ar_cleared_v{version}.txt'
 df = pd.read_csv(filePath+fileName,sep=';')
 res = df

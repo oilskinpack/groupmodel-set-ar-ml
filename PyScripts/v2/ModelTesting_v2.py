@@ -127,8 +127,8 @@ session_model = rt.InferenceSession(model_path+model_onnx_name)
 # ['Толщина','ПаркингBool', 'ШтукатурныйBool',
 # 'НавеснойBool', 'ВнутрBool', 'ПодвалBool', 'УтеплениеBool',
 # 'ПарапетBool', 'БетонBool', 'ЛЛУBool', 'ПомещенияBool']
-elem  = getInputData(typeName='Перегородка_ГКЛ_125_ГСП-A(12,5)_x4',
-                   thickness=125,sectionName='Секция 1',
+elem  = getInputData(typeName='BRU_ОтделкаПомещений_МОП_Штукатурка гипсовая по утеплителю_15мм',
+                   thickness=15,sectionName='Секция 1',
                    elev= 3000)
 
 #Тестирование joblib

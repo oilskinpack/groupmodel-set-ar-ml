@@ -64,13 +64,13 @@ def getInputData(typeName,thickness,sectionName,elev):
 #region Загрузка файлов joblib
 
 #Загрузка нормализатора
-filePath = r'D:\Khabarov\Скрипты\6.Валидация АР\PyScalers'
+filePath = r'/PyScalers'
 fileName = fr'\normalizerAR_v{version}.save'
 loaded_scaler = load(filePath+fileName)
 
 #Загрузка модели
 scalerPath = r'D:\Khabarov\Скрипты\6.Валидация АР\PyScalers'
-filePath = r'D:\Khabarov\Скрипты\6.Валидация АР\PyModels'
+filePath = r'/PyModels'
 fileName = fr'\modelAR_v{version}.joblib'
 loaded_model = load(filePath+fileName)
 

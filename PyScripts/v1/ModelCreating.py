@@ -83,7 +83,7 @@ x_colums = [thicknessPN,
 
 
 #region Загрузка и проверка данных
-filePath = r'D:\Khabarov\Скрипты\6.Валидация АР\DataSets\ClearedDatasets'
+filePath = r'/DataSets/ClearedDatasets'
 fileName = r'\dataset_ar_cleared_v1.txt'
 df = pd.read_csv(filePath+fileName,sep=';')
 
@@ -201,7 +201,7 @@ metricsRep = classification_report(y_test,y_pred)
 #region Сохранение модели и нормализатора joblib
 
 #Сохранение нормализатора
-filePath = r'D:\Khabarov\Скрипты\6.Валидация АР\PyScalers'
+filePath = r'/PyScalers'
 fileName = fr'\normalizerAR_v{version}.save'
 if needSaveFinalNormaliser:
     dump(scaler, filePath + fileName)
@@ -209,7 +209,7 @@ if needSaveFinalNormaliser:
 
 
 #Сохранение модели
-filePath = r'D:\Khabarov\Скрипты\6.Валидация АР\PyModels'
+filePath = r'/PyModels'
 fileName = fr'\modelAR_v{version}.joblib'
 if needSaveFinalModel:
     dump(grid_model.best_estimator_, filePath + fileName)
@@ -220,7 +220,7 @@ if needSaveFinalModel:
 
 #region Нормализатор
 if needSaveFinalNormaliserOnnx:
-    filePath = r'D:\Khabarov\Скрипты\6.Валидация АР\PyScalers'
+    filePath = r'/PyScalers'
     fileName = fr'\normalizerAR_v{version}.onnx'
     ONNXNormalizerPath = filePath + fileName
     initial_type = [('feature_input',FloatTensorType([None,11]))]
@@ -233,7 +233,7 @@ if needSaveFinalNormaliserOnnx:
 
 if needSaveFinalModelOnnx:
     fileName = fr'\modelAR_v{version}.onnx'
-    filePath = r'D:\Khabarov\Скрипты\6.Валидация АР\PyModels'
+    filePath = r'/PyModels'
     ONNXModelPath = filePath + fileName
 
     initial_type = [('feature_input', FloatTensorType([None, 11]))]
